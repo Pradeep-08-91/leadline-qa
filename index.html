@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Leadline — Lead Management</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+  :root{
+    --ink:#17242F; --ink-2:#3E4E5C; --mist:#F3F5F7; --line:#D9E0E6;
+    --card:#FFFFFF; --teal:#0F766E; --teal-dark:#0B5952; --teal-soft:#E4F2F0;
+    --danger:#B42318; --danger-soft:#FBEAE8; --amber:#B45309; --amber-soft:#FCF0E1;
+    --blue:#1D4ED8; --blue-soft:#E7EDFB;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--mist);color:var(--ink);font-size:15px;line-height:1.45}
+  .wordmark{font-weight:800;letter-spacing:-.03em}
+  .wordmark .dot{color:var(--teal)}
+  button{font:inherit;cursor:pointer}
+  input,select{font:inherit}
+  .btn{border:1px solid transparent;border-radius:8px;padding:9px 16px;font-weight:600}
+  .btn:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+  .btn-primary{background:var(--teal);color:#fff}
+  .btn-primary:hover{background:var(--teal-dark)}
+  .btn-ghost{background:transparent;color:var(--ink-2);border-color:var(--line)}
+  .btn-ghost:hover{background:#fff}
+  .btn-danger{background:var(--danger);color:#fff}
+  .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+  .field label{font-size:13px;font-weight:600;color:var(--ink-2)}
+  .field input{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fff}
+  .field input[aria-invalid="true"]{border-color:var(--danger)}
+  .err{color:var(--danger);font-size:13px}
+  .banner{display:flex;align-items:center;gap:10px;border-radius:10px;padding:12px 14px;font-weight:600;margin-bottom:16px}
+  .banner-error{background:var(--danger-soft);color:var(--danger);border:1px solid #EFC7C2}
+  .banner-ok{background:var(--teal-soft);color:var(--teal-dark);border:1px solid #BFE0DC}
+  .chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px;font-size:13px;font-weight:600;color:var(--ink-2)}
+  .chip[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .status{border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700}
+  .status-New{background:var(--blue-soft);color:var(--blue)}
+  .status-Contacted{background:var(--amber-soft);color:var(--amber)}
+  .status-Qualified{background:var(--teal-soft);color:var(--teal-dark)}
+  table{width:100%;border-collapse:collapse;background:var(--card)}
+  th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2);text-align:left;padding:12px 16px;border-bottom:1px solid var(--line)}
+  td{padding:14px 16px;border-bottom:1px solid var(--line)}
+  tr:last-child td{border-bottom:none}
+  .backdrop{position:fixed;inset:0;background:rgba(23,36,47,.45);display:flex;align-items:center;justify-content:center;padding:20px;z-index:10}
+  .modal{background:#fff;border-radius:14px;padding:24px;width:100%;max-width:420px;box-shadow:0 20px 50px rgba(23,36,47,.25)}
+  @media (prefers-reduced-motion:no-preference){.modal{animation:pop .16s ease-out}}
+  @keyframes pop{from{transform:scale(.97);opacity:0}to{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo, useRef, useEffect } = React;
+
+const SEED = [
+  { id: 1, name: "Priya Raman",  company: "Northwind Retail", email: "priya@northwind.com",  phone: "555-0141", status: "Qualified" },
+  { id: 2, name: "Marcus Webb",  company: "Halcyon Media",    email: "marcus@halcyon.io",    phone: "",         status: "New" },
+  { id: 3, name: "Dana Okafor",  company: "Brightline SaaS",  email: "dana@brightline.app",  phone: "555-0163", status: "Contacted" },
+  { id: 4, name: "Tomás Rivera", company: "Vela Logistics",   email: "tomas@velalog.com",    phone: "555-0117", status: "New" },
+];
+const STATUSES = ["All", "New", "Contacted", "Qualified"];
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function Login({ onLogin }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const submit = () => {
+    if (!email.trim() || !password) { setError("Enter both email and password."); return; }
+    if (email.trim().toLowerCase() !== "test@example.com") { setError("Invalid credentials. Use test@example.com."); return; }
+    onLogin();
+  };
+  return (
+    <main style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{width:"100%",maxWidth:380}}>
+        <h1 className="wordmark" style={{fontSize:34,marginBottom:4}}>Leadline<span className="dot">.</span></h1>
+        <p style={{color:"var(--ink-2)",marginBottom:24}}>Sign in to manage your pipeline.</p>
+        <div style={{background:"#fff",border:"1px solid var(--line)",borderRadius:14,padding:24}}>
+          {error && <div className="banner banner-error" role="alert" data-testid="login-error">{error}</div>}
+          <div className="field">
+            <label htmlFor="email">Email</label>
+            <input id="email" data-testid="login-email" type="email" value={email}
+              onChange={e=>setEmail(e.target.value)} placeholder="test@example.com" autoComplete="username" />
+          </div>
+          <div className="field">
+            <label htmlFor="password">Password</label>
+            <input id="password" data-testid="login-password" type="password" value={password}
+              onChange={e=>setPassword(e.target.value)} placeholder="Any password" autoComplete="current-password"
+              onKeyDown={e=>e.key==="Enter"&&submit()} />
+          </div>
+          <button className="btn btn-primary" data-testid="login-submit" style={{width:"100%"}} onClick={submit}>Sign in</button>
+        </div>
+        <p style={{fontSize:13,color:"var(--ink-2)",marginTop:12}}>Demo: <strong>test@example.com</strong> with any password.</p>
+      </div>
+    </main>
+  );
+}
+
+function LeadForm({ initial, existing, onSave, onCancel }) {
+  const [form, setForm] = useState(initial || { name:"", company:"", email:"", phone:"", status:"New" });
+  const [errors, setErrors] = useState({});
+  const [dupe, setDupe] = useState(false);
+  const firstRef = useRef(null);
+  useEffect(()=>{ firstRef.current && firstRef.current.focus(); },[]);
+  const set = (k,v)=>setForm(f=>({...f,[k]:v}));
+  const submit = () => {
+    const e = {};
+    if (!form.name.trim()) e.name = "Name is required.";
+    if (!form.email.trim()) e.email = "Email is required.";
+    else if (!EMAIL_RE.test(form.email.trim())) e.email = "Enter a valid email address.";
+    if (form.phone && !/^[\d\s\-().+]{7,}$/.test(form.phone)) e.phone = "Enter a valid phone number.";
+    setErrors(e);
+    if (Object.keys(e).length) return;
+    const clash = existing.some(l => l.email.toLowerCase() === form.email.trim().toLowerCase() && l.id !== (initial && initial.id));
+    if (clash) { setDupe(true); return; }
+    onSave({ ...form, name: form.name.trim(), email: form.email.trim() });
+  };
+  return (
+    <div className="backdrop" onClick={e=>e.target===e.currentTarget&&onCancel()}>
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="lead-form-title">
+        <h2 id="lead-form-title" style={{marginBottom:16}}>{initial ? "Edit lead" : "Add lead"}</h2>
+        {dupe && <div className="banner banner-error" role="alert" data-testid="duplicate-error">A lead with this email already exists.</div>}
+        <div className="field">
+          <label htmlFor="lead-name">Name *</label>
+          <input ref={firstRef} id="lead-name" data-testid="lead-name" value={form.name}
+            aria-invalid={!!errors.name} onChange={e=>set("name",e.target.value)} />
+          {errors.name && <span className="err" data-testid="name-error">{errors.name}</span>}
+        </div>
+        <div className="field">
+          <label htmlFor="lead-company">Company</label>
+          <input id="lead-company" data-testid="lead-company" value={form.company} onChange={e=>set("company",e.target.value)} />
+        </div>
+        <div className="field">
+          <label htmlFor="lead-email">Email *</label>
+          <input id="lead-email" data-testid="lead-email" value={form.email}
+            aria-invalid={!!errors.email} onChange={e=>{set("email",e.target.value); setDupe(false);}} />
+          {errors.email && <span className="err" data-testid="email-error">{errors.email}</span>}
+        </div>
+        <div className="field">
+          <label htmlFor="lead-phone">Phone (optional)</label>
+          <input id="lead-phone" data-testid="lead-phone" value={form.phone}
+            aria-invalid={!!errors.phone} onChange={e=>set("phone",e.target.value)} />
+          {errors.phone && <span className="err" data-testid="phone-error">{errors.phone}</span>}
+        </div>
+        <div className="field">
+          <label htmlFor="lead-status">Status</label>
+          <select id="lead-status" data-testid="lead-status" value={form.status}
+            style={{border:"1px solid var(--line)",borderRadius:8,padding:"10px 12px",background:"#fff"}}
+            onChange={e=>set("status",e.target.value)}>
+            {STATUSES.slice(1).map(s=><option key={s}>{s}</option>)}
+          </select>
+        </div>
+        <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:8}}>
+          <button className="btn btn-ghost" onClick={onCancel}>Cancel</button>
+          <button className="btn btn-primary" data-testid="lead-save" onClick={submit}>{initial ? "Save changes" : "Add lead"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConfirmDelete({ lead, onConfirm, onCancel }) {
+  return (
+    <div className="backdrop" onClick={e=>e.target===e.currentTarget&&onCancel()}>
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+        <h2 id="confirm-title" style={{marginBottom:10}}>Delete this lead?</h2>
+        <p style={{color:"var(--ink-2)",marginBottom:20}}>
+          <strong>{lead.name}</strong> ({lead.email}) will be permanently removed.
+        </p>
+        <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
+          <button className="btn btn-ghost" data-testid="delete-cancel" onClick={onCancel}>Cancel</button>
+          <button className="btn btn-danger" data-testid="delete-confirm" onClick={onConfirm}>Delete lead</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [authed, setAuthed] = useState(false);
+  const [leads, setLeads] = useState(SEED);
+  const [nextId, setNextId] = useState(5);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [modal, setModal] = useState(null); // {type:'add'} | {type:'edit',lead} | {type:'delete',lead}
+  const [toast, setToast] = useState("");
+
+  const flash = (msg) => { setToast(msg); setTimeout(()=>setToast(""), 2500); };
+
+  const visible = useMemo(() => leads.filter(l => {
+    const q = query.trim().toLowerCase();
+    const matchQ = !q || l.name.toLowerCase().includes(q) || l.company.toLowerCase().includes(q) || l.email.toLowerCase().includes(q);
+    const matchS = statusFilter === "All" || l.status === statusFilter;
+    return matchQ && matchS;
+  }), [leads, query, statusFilter]);
+
+  if (!authed) return <Login onLogin={()=>setAuthed(true)} />;
+
+  return (
+    <div style={{maxWidth:900,margin:"0 auto",padding:"28px 20px"}}>
+      <header style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:22}}>
+        <h1 className="wordmark" style={{fontSize:26}}>Leadline<span className="dot">.</span></h1>
+        <button className="btn btn-ghost" data-testid="sign-out" onClick={()=>setAuthed(false)}>Sign out</button>
+      </header>
+
+      {toast && <div className="banner banner-ok" role="status" data-testid="toast">{toast}</div>}
+
+      <section aria-label="Lead controls" style={{display:"flex",flexWrap:"wrap",gap:10,alignItems:"center",marginBottom:16}}>
+        <input aria-label="Search leads" data-testid="search" placeholder="Search name, company, or email…"
+          value={query} onChange={e=>setQuery(e.target.value)}
+          style={{flex:"1 1 240px",border:"1px solid var(--line)",borderRadius:8,padding:"10px 12px",background:"#fff"}} />
+        <div role="group" aria-label="Filter by status" style={{display:"flex",gap:6}}>
+          {STATUSES.map(s => (
+            <button key={s} className="chip" aria-pressed={statusFilter===s} data-testid={"filter-"+s.toLowerCase()}
+              onClick={()=>setStatusFilter(s)}>{s}</button>
+          ))}
+        </div>
+        <button className="btn btn-primary" data-testid="add-lead" onClick={()=>setModal({type:"add"})}>Add lead</button>
+      </section>
+
+      <div style={{border:"1px solid var(--line)",borderRadius:12,overflow:"hidden"}}>
+        <table aria-label="Leads">
+          <thead><tr><th>Name</th><th>Company</th><th>Email</th><th>Phone</th><th>Status</th><th><span style={{position:"absolute",left:-9999}}>Actions</span></th></tr></thead>
+          <tbody data-testid="lead-rows">
+            {visible.length === 0 && (
+              <tr><td colSpan="6" style={{textAlign:"center",color:"var(--ink-2)",padding:"34px 16px"}} data-testid="empty-state">
+                No leads match. Clear the search or add a lead.
+              </td></tr>
+            )}
+            {visible.map(l => (
+              <tr key={l.id} data-testid={"lead-row-"+l.id}>
+                <td style={{fontWeight:600}}>{l.name}</td>
+                <td>{l.company}</td>
+                <td>{l.email}</td>
+                <td>{l.phone || "—"}</td>
+                <td><span className={"status status-"+l.status}>{l.status}</span></td>
+                <td style={{whiteSpace:"nowrap"}}>
+                  <button className="btn btn-ghost" style={{padding:"6px 12px",marginRight:6}}
+                    aria-label={"Edit "+l.name} onClick={()=>setModal({type:"edit",lead:l})}>Edit</button>
+                  <button className="btn btn-ghost" style={{padding:"6px 12px",color:"var(--danger)"}}
+                    aria-label={"Delete "+l.name} onClick={()=>setModal({type:"delete",lead:l})}>Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p style={{fontSize:13,color:"var(--ink-2)",marginTop:10}} data-testid="lead-count">
+        Showing {visible.length} of {leads.length} leads
+      </p>
+
+      {modal && modal.type==="add" && (
+        <LeadForm existing={leads} onCancel={()=>setModal(null)}
+          onSave={l=>{ setLeads(ls=>[...ls,{...l,id:nextId}]); setNextId(n=>n+1); setModal(null); flash("Lead added."); }} />
+      )}
+      {modal && modal.type==="edit" && (
+        <LeadForm initial={modal.lead} existing={leads} onCancel={()=>setModal(null)}
+          onSave={l=>{ setLeads(ls=>ls.map(x=>x.id===modal.lead.id?{...l,id:x.id}:x)); setModal(null); flash("Changes saved."); }} />
+      )}
+      {modal && modal.type==="delete" && (
+        <ConfirmDelete lead={modal.lead} onCancel={()=>setModal(null)}
+          onConfirm={()=>{ setLeads(ls=>ls.filter(x=>x.id!==modal.lead.id)); setModal(null); flash("Lead deleted."); }} />
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
