@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2021",
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true
+  },
+  "include": ["tests/**/*.js", "playwright.config.js"]
+}
